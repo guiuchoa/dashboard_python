@@ -1,4 +1,4 @@
 # dashboard_python
 
-Just a repository of dashboards projects in Python <br>
-Apenas um repositório de projetos de dashboards em Python
+Just a dashboard project in Python <br><br>
+Apenas um projeto de dashboard em Python
