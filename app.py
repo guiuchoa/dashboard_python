@@ -1,25 +1,63 @@
-from dash import Dash, html, dcc, callback, Output, Input
+from dash import Dash, dcc, html, Input, Output, dash_table
 import plotly.express as px
 import pandas as pd
 
-df = pd.read_csv('https://raw.githubusercontent.com/plotly/datasets/master/gapminder_unfiltered.csv')
+# Carregamento dos dados
+caminho_csv = r'C:\Users\guie3\OneDrive\Documentos\Python Scripts\Dashboards Python\vendas.csv'
+df = pd.read_csv(caminho_csv, encoding='latin1')
+df['data'] = pd.to_datetime(df['data'], dayfirst=True)
 
-app = Dash()
+# Inicializa o app
+app = Dash(__name__)
 
-# Requires Dash 2.17.0 or later
-app.layout = [
-    html.H1(children='Title of Dash App', style={'textAlign':'center'}),
-    dcc.Dropdown(df.country.unique(), 'Canada', id='dropdown-selection'),
-    dcc.Graph(id='graph-content')
-]
+# Layout
+app.layout = html.Div([
+    html.H1("Dashboard de Vendas", style={"textAlign": "center"}),
 
-@callback(
-    Output('graph-content', 'figure'),
-    Input('dropdown-selection', 'value')
+    html.Div([
+        html.Label("Selecione o Produto:"),
+        dcc.Dropdown(
+            options=[{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
+            value=df['produto'].unique()[0],
+            id="filtro-produto"
+        )
+    ], style={"width": "50%", "margin": "auto"}),
+
+    dcc.Graph(id="grafico-vendas-tempo"),
+    dcc.Graph(id="grafico-vendas-regiao"),
+
+    html.H3("Tabela de Vendas"),
+    dash_table.DataTable(
+        id='tabela-vendas',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        page_size=10,
+        style_table={'overflowX': 'auto'},
+        style_cell={'textAlign': 'left'}
+    )
+])
+
+# Callback
+@app.callback(
+    [
+        Output("grafico-vendas-tempo", "figure"),
+        Output("grafico-vendas-regiao", "figure"),
+        Output("tabela-vendas", "data")
+    ],
+    Input("filtro-produto", "value")
 )
-def update_graph(value):
-    dff = df[df.country==value]
-    return px.line(dff, x='year', y='pop')
+def atualizar_dashboard(produto):
+    dff = df[df['produto'] == produto]
 
+    fig_tempo = px.line(dff.groupby('data')['total'].sum().reset_index(),
+                        x='data', y='total',
+                        title=f"Total de Vendas ao Longo do Tempo ({produto})")
+
+    fig_regiao = px.bar(dff.groupby('região')['total'].sum().reset_index(),
+                        x='região', y='total',
+                        title=f"Total de Vendas por Região ({produto})")
+
+    return fig_tempo, fig_regiao, dff.to_dict("records")
+
+# Executar
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run_server(debug=True)
