@@ -21,7 +21,10 @@ app.layout = dbc.Container([
             dcc.Dropdown(
                 options=[{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
                 value=df['produto'].unique()[0],
-                id="filtro-produto"
+                id="filtro-produto",
+                style={
+                    'color':'black'
+                }
             )
         ], width=6)
     ], className="mb-4 justify-content-center"),
@@ -51,8 +54,8 @@ app.layout = dbc.Container([
 # Callback
 @app.callback(
     [
-        Output("grafico-vendas-tempo", "figure"),
         Output("grafico-vendas-regiao", "figure"),
+        Output("grafico-vendas-tempo", "figure"),
         Output("tabela-vendas", "data")
     ],
     Input("filtro-produto", "value")
@@ -60,13 +63,34 @@ app.layout = dbc.Container([
 def atualizar_dashboard(produto):
     dff = df[df['produto'] == produto]
 
+    # Gráfico de vendas ao longo do tempo
     fig_tempo = px.line(dff.groupby('data')['total'].sum().reset_index(),
                         x='data', y='total',
                         title=f"Total de Vendas ao Longo do Tempo ({produto})")
+    
+    # Preparação para o gráfico de vendas por região
+    # Agrupa os dados
+    df_regiao = dff.groupby('região')['total'].sum().reset_index()
+    # Formata os valores como R$
+    df_regiao['total_formatado'] = df_regiao['total'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
+    # Cria o gráfico
+    fig_regiao = px.bar(
+        df_regiao,
+        x='região',
+        y='total',
+        text='total_formatado',
+        title=f"Total de Vendas por Região ({produto})"
+    )
 
-    fig_regiao = px.bar(dff.groupby('região')['total'].sum().reset_index(),
-                        x='região', y='total',
-                        title=f"Total de Vendas por Região ({produto})")
+    # Estilo dos rótulos e eixos
+    fig_regiao.update_traces(textposition='inside')
+    fig_regiao.update_layout(
+        uniformtext_minsize=8,
+        uniformtext_mode='hide',
+        yaxis_tickprefix='R$ ',
+        yaxis_tickformat=',.2f'
+    )
+
 
     return fig_tempo, fig_regiao, dff.to_dict("records")
 
