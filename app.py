@@ -1,4 +1,5 @@
 from dash import Dash, dcc, html, Input, Output, dash_table
+import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
 
@@ -7,34 +8,45 @@ caminho_csv = r'C:\Users\guie3\OneDrive\Documentos\Python Scripts\Dashboards Pyt
 df = pd.read_csv(caminho_csv, encoding='latin1')
 df['data'] = pd.to_datetime(df['data'], dayfirst=True)
 
-# Inicializa o app
-app = Dash(__name__)
+# Inicializa o app com tema escuro
+app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 # Layout
-app.layout = html.Div([
-    html.H1("Dashboard de Vendas", style={"textAlign": "center"}),
+app.layout = dbc.Container([
+    html.H1("Dashboard de Vendas", className="text-center text-white mb-4"),
 
-    html.Div([
-        html.Label("Selecione o Produto:"),
-        dcc.Dropdown(
-            options=[{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
-            value=df['produto'].unique()[0],
-            id="filtro-produto"
-        )
-    ], style={"width": "50%", "margin": "auto"}),
+    dbc.Row([
+        dbc.Col([
+            html.Label("Selecione o Produto:", className="text-white"),
+            dcc.Dropdown(
+                options=[{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
+                value=df['produto'].unique()[0],
+                id="filtro-produto"
+            )
+        ], width=6)
+    ], className="mb-4 justify-content-center"),
 
     dcc.Graph(id="grafico-vendas-tempo"),
     dcc.Graph(id="grafico-vendas-regiao"),
 
-    html.H3("Tabela de Vendas"),
+    html.H3("Tabela de Vendas", className="text-white mt-4"),
     dash_table.DataTable(
         id='tabela-vendas',
         columns=[{"name": i, "id": i} for i in df.columns],
         page_size=10,
         style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left'}
+        style_cell={
+            'textAlign': 'left',
+            'backgroundColor': '#343a40',
+            'color': 'white'
+        },
+        style_header={
+            'backgroundColor': '#1f2c56',
+            'color': 'white',
+            'fontWeight': 'bold'
+        }
     )
-])
+], fluid=True, style={"padding": "30px"})
 
 # Callback
 @app.callback(
@@ -60,4 +72,4 @@ def atualizar_dashboard(produto):
 
 # Executar
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run(debug=True)
