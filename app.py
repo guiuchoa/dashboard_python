@@ -26,11 +26,22 @@ app.layout = dbc.Container([
                     'color':'black'
                 }
             )
+        ], width=6),
+        dbc.Col([
+            html.Label("Selecione a Operadora:", className="text-white"),
+            dcc.Dropdown(
+                options=[{"label": op, "value": op} for op in sorted(df['operadora'].unique())],
+                value=df['operadora'].unique()[0],
+                id="filtro-operadora",
+                style={
+                    'color':'black'
+                }
+            )
         ], width=6)
-    ], className="mb-4 justify-content-center"),
-
-    dcc.Graph(id="grafico-vendas-tempo"),
+    ], className="mb-4 justify-content-left"),
+    
     dcc.Graph(id="grafico-vendas-regiao"),
+    dcc.Graph(id="grafico-vendas-tempo"),
 
     html.H3("Tabela de Vendas", className="text-white mt-4"),
     dash_table.DataTable(
@@ -54,14 +65,18 @@ app.layout = dbc.Container([
 # Callback
 @app.callback(
     [
-        Output("grafico-vendas-regiao", "figure"),
         Output("grafico-vendas-tempo", "figure"),
+        Output("grafico-vendas-regiao", "figure"),
         Output("tabela-vendas", "data")
     ],
-    Input("filtro-produto", "value")
+    [
+        Input("filtro-produto", "value"),
+        Input("filtro-operadora", "value")
+    ]
 )
-def atualizar_dashboard(produto):
-    dff = df[df['produto'] == produto]
+
+def atualizar_dashboard(produto, operadora):
+    dff = df[(df['produto'] == produto) & (df['operadora'] == operadora)]
 
     # Gráfico de vendas ao longo do tempo
     fig_tempo = px.line(dff.groupby('data')['total'].sum().reset_index(),
