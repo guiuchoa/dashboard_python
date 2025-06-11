@@ -2,14 +2,13 @@ from dash import Dash, dcc, html, Input, Output, State, dash_table
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import pandas as pd
-from datetime import datetime
 
 # Carrega os dados
 caminho_csv = r'C:\Users\guie3\OneDrive\Documentos\Python Scripts\Dashboards Python\vendas.csv'
 df = pd.read_csv(caminho_csv, encoding='latin1')
 df['data'] = pd.to_datetime(df['data'], dayfirst=True)
 
-# Inicializa o app com tema escuro
+# Inicializa o app
 app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 # Layout
@@ -17,13 +16,37 @@ app.layout = dbc.Container([
     html.H1("Dashboard de Vendas", className="text-center text-white mb-4"),
 
     dbc.Row([
+        dbc.Col(dbc.Card([
+            dbc.CardBody([
+                html.H5("Total de Vendas", className="card-title"),
+                html.H2(id="indicador-total", className="card-text")
+            ])
+        ], color="primary", inverse=True), width=4),
+
+        dbc.Col(dbc.Card([
+            dbc.CardBody([
+                html.H5("Qtd. de Registros", className="card-title"),
+                html.H2(id="indicador-registros", className="card-text")
+            ])
+        ], color="info", inverse=True), width=4),
+
+        dbc.Col(dbc.Card([
+            dbc.CardBody([
+                html.H5("Média por Venda", className="card-title"),
+                html.H2(id="indicador-media", className="card-text")
+            ])
+        ], color="secondary", inverse=True), width=4)
+    ], className="mb-4"),
+
+    dbc.Row([
         dbc.Col([
             html.Label("Produto:", className="text-white"),
             dcc.Dropdown(
                 id="filtro-produto",
-                options=[{"label": "Todos os Produtos", "value": "Todos"}] +
-                        [{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
-                value="Todos",
+                options=[{"label": prod, "value": prod} for prod in sorted(df['produto'].unique())],
+                multi=True,
+                value=[],
+                placeholder="Todos os produtos",
                 style={'color': 'black'}
             )
         ], width=4),
@@ -32,9 +55,10 @@ app.layout = dbc.Container([
             html.Label("Operadora:", className="text-white"),
             dcc.Dropdown(
                 id="filtro-operadora",
-                options=[{"label": "Todas as Operadoras", "value": "Todas"}] +
-                        [{"label": op, "value": op} for op in sorted(df['operadora'].unique())],
-                value="Todas",
+                options=[{"label": op, "value": op} for op in sorted(df['operadora'].unique())],
+                multi=True,
+                value=[],
+                placeholder="Todas as operadoras",
                 style={'color': 'black'}
             )
         ], width=4),
@@ -45,8 +69,7 @@ app.layout = dbc.Container([
                 id='filtro-data',
                 start_date=df['data'].min().date(),
                 end_date=df['data'].max().date(),
-                display_format='DD/MM/YYYY',
-                style={'color': 'black'}
+                display_format='DD/MM/YYYY'
             )
         ], width=4)
     ], className="mb-4"),
@@ -54,14 +77,13 @@ app.layout = dbc.Container([
     dcc.Graph(id="grafico-vendas-regiao"),
     dcc.Graph(id="grafico-vendas-tempo"),
 
-
     dbc.Row([
         dbc.Col(html.H3("Tabela de Vendas", className="text-white"), width=9),
         dbc.Col(
             html.Button("Exportar para Excel", id="btn-exportar", className="btn btn-success"),
             width=3, style={"textAlign": "right"}
         )
-    ], className="mb-2"),
+    ]),
 
     dcc.Download(id="download-tabela"),
 
@@ -71,7 +93,9 @@ app.layout = dbc.Container([
         page_size=10,
         style_table={'overflowX': 'auto'},
         style_cell={'textAlign': 'left', 'backgroundColor': '#343a40', 'color': 'white'},
-        style_header={'backgroundColor': '#1f2c56', 'color': 'white', 'fontWeight': 'bold'}
+        style_header={'backgroundColor': '#1f2c56', 'color': 'white', 'fontWeight': 'bold'},
+        style_data={'whiteSpace': 'normal'},
+        style_data_conditional=[]
     )
 ], fluid=True, style={"padding": "30px"})
 
@@ -80,7 +104,10 @@ app.layout = dbc.Container([
     [
         Output("grafico-vendas-tempo", "figure"),
         Output("grafico-vendas-regiao", "figure"),
-        Output("tabela-vendas", "data")
+        Output("tabela-vendas", "data"),
+        Output("indicador-total", "children"),
+        Output("indicador-registros", "children"),
+        Output("indicador-media", "children"),
     ],
     [
         Input("filtro-produto", "value"),
@@ -89,18 +116,17 @@ app.layout = dbc.Container([
         Input("filtro-data", "end_date")
     ]
 )
-def atualizar_dashboard(produto, operadora, data_inicio, data_fim):
+def atualizar_dashboard(produtos, operadoras, data_inicio, data_fim):
     dff = df.copy()
 
-    if produto != "Todos":
-        dff = dff[dff['produto'] == produto]
-
-    if operadora != "Todas":
-        dff = dff[dff['operadora'] == operadora]
+    if produtos:
+        dff = dff[dff['produto'].isin(produtos)]
+    if operadoras:
+        dff = dff[dff['operadora'].isin(operadoras)]
 
     dff = dff[(dff['data'] >= pd.to_datetime(data_inicio)) & (dff['data'] <= pd.to_datetime(data_fim))]
 
-    # Gráfico por tempo
+    # Gráficos
     fig_tempo = px.line(
         dff.groupby('data')['total'].sum().reset_index(),
         x='data',
@@ -108,7 +134,6 @@ def atualizar_dashboard(produto, operadora, data_inicio, data_fim):
         title="Total de Vendas ao Longo do Tempo"
     )
 
-    # Gráfico por região
     df_regiao = dff.groupby('região')['total'].sum().reset_index()
     df_regiao['total_formatado'] = df_regiao['total'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
 
@@ -122,14 +147,21 @@ def atualizar_dashboard(produto, operadora, data_inicio, data_fim):
     fig_regiao.update_traces(textposition='inside')
     fig_regiao.update_layout(
         yaxis_tickprefix='R$ ',
-        yaxis_tickformat=',.2f',
-        uniformtext_minsize=8,
-        uniformtext_mode='hide'
+        yaxis_tickformat=',.2f'
     )
 
-    return fig_tempo, fig_regiao, dff.to_dict("records")
+    # Indicadores
+    total = dff['total'].sum()
+    media = dff['total'].mean()
+    registros = len(dff)
 
-# Callback para exportação
+    total_fmt = f"R$ {total:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    media_fmt = f"R$ {media:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    registros_fmt = f"{registros:,}".replace(",", ".")
+
+    return fig_tempo, fig_regiao, dff.to_dict("records"), total_fmt, registros_fmt, media_fmt
+
+# Exportação
 @app.callback(
     Output("download-tabela", "data"),
     Input("btn-exportar", "n_clicks"),
@@ -141,20 +173,18 @@ def atualizar_dashboard(produto, operadora, data_inicio, data_fim):
     ],
     prevent_initial_call=True
 )
-def exportar_excel(n_clicks, produto, operadora, data_inicio, data_fim):
+def exportar_excel(n_clicks, produtos, operadoras, data_inicio, data_fim):
     dff = df.copy()
 
-    if produto != "Todos":
-        dff = dff[dff['produto'] == produto]
-
-    if operadora != "Todas":
-        dff = dff[dff['operadora'] == operadora]
+    if produtos:
+        dff = dff[dff['produto'].isin(produtos)]
+    if operadoras:
+        dff = dff[dff['operadora'].isin(operadoras)]
 
     dff = dff[(dff['data'] >= pd.to_datetime(data_inicio)) & (dff['data'] <= pd.to_datetime(data_fim))]
 
-    # Cria o Excel em memória
     return dcc.send_data_frame(dff.to_excel, filename="vendas_filtradas.xlsx", index=False)
 
-# Executa o app
-if __name__ == "__main__":
+# Roda o servidor
+if __name__ == '__main__':
     app.run(debug=True)
