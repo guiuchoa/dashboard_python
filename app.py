@@ -9,35 +9,52 @@ df = pd.read_csv(caminho_csv, encoding='latin1')
 df['data'] = pd.to_datetime(df['data'], dayfirst=True)
 
 # Inicializa o app
-app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
+app = Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 
 # Layout
 app.layout = dbc.Container([
-    html.H1("Bit Shop", className="text-center text-white mb-4"),
+    # Título com logo (opcional - logo deve estar na pasta assets)
+    html.Div([
+        #html.Img(src='assets/logo.png', height='50px'),
+        html.H1("Bit Shop", className="text-white ms-3")
+    ], className="d-flex align-items-center mb-4"),
 
+    # Indicadores
     dbc.Row([
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Total de Vendas", className="card-title"),
+                html.H5([
+                    html.I(className="bi bi-cash-stack me-2"),
+                    "Total de Vendas"
+                ], className="card-title"),
                 html.H2(id="indicador-total", className="card-text")
             ])
-        ], color="primary", inverse=True), width=4),
+        ], color="primary", inverse=True), width=12, md=4),
 
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Qtd. de Registros", className="card-title"),
+                html.H5([
+                    html.I(className="bi bi-clipboard-data me-2"),
+                    "Qtd. de Registros"
+                ], className="card-title"),
                 html.H2(id="indicador-registros", className="card-text")
             ])
-        ], color="info", inverse=True), width=4),
+        ], color="info", inverse=True), width=12, md=4),
 
         dbc.Col(dbc.Card([
             dbc.CardBody([
-                html.H5("Média por Venda", className="card-title"),
+                html.H5([
+                    html.I(className="bi bi-bar-chart-line me-2"),
+                    "Média por Venda"
+                ], className="card-title"),
                 html.H2(id="indicador-media", className="card-text")
             ])
-        ], color="secondary", inverse=True), width=4)
+        ], color="secondary", inverse=True), width=12, md=4)
     ], className="mb-4"),
 
+    html.Hr(),
+
+    # Filtros
     dbc.Row([
         dbc.Col([
             html.Label("Produto:", className="text-white"),
@@ -49,7 +66,7 @@ app.layout = dbc.Container([
                 placeholder="Todos os produtos",
                 style={'color': 'black'}
             )
-        ], width=4),
+        ], width=12, md=4),
 
         dbc.Col([
             html.Label("Vendedor:", className="text-white"),
@@ -61,7 +78,7 @@ app.layout = dbc.Container([
                 placeholder="Todos os vendedores",
                 style={'color': 'black'}
             )
-        ], width=4),
+        ], width=12, md=4),
 
         dbc.Col([
             html.Label("Período:", className="text-white"),
@@ -71,12 +88,18 @@ app.layout = dbc.Container([
                 end_date=df['data'].max().date(),
                 display_format='DD/MM/YYYY'
             )
-        ], width=4)
+        ], width=12, md=4)
     ], className="mb-4"),
 
+    html.Hr(),
+
+    # Gráficos
     dcc.Graph(id="grafico-vendas-regiao"),
     dcc.Graph(id="grafico-vendas-tempo"),
 
+    html.Hr(),
+
+    # Tabela e botão
     dbc.Row([
         dbc.Col(html.H3("Tabela de Vendas", className="text-white"), width=9),
         dbc.Col(
@@ -92,9 +115,13 @@ app.layout = dbc.Container([
         columns=[{"name": i, "id": i} for i in df.columns],
         page_size=10,
         style_table={'overflowX': 'auto'},
-        style_cell={'textAlign': 'left', 'backgroundColor': '#343a40', 'color': 'white'},
+        style_cell={'textAlign': 'left', 'backgroundColor': '#2a2a2a', 'color': 'white'},
         style_header={'backgroundColor': '#1f2c56', 'color': 'white', 'fontWeight': 'bold'},
-        style_data={'whiteSpace': 'normal'},
+        style_data={
+            'whiteSpace': 'normal',
+            'height': 'auto',
+            'border': '1px solid #444'
+        },
         style_data_conditional=[]
     )
 ], fluid=True, style={"padding": "30px"})
@@ -126,14 +153,21 @@ def atualizar_dashboard(produtos, vendedores, data_inicio, data_fim):
 
     dff = dff[(dff['data'] >= pd.to_datetime(data_inicio)) & (dff['data'] <= pd.to_datetime(data_fim))]
 
-    # Gráficos
+    # Gráfico de vendas ao longo do tempo
     fig_tempo = px.line(
         dff.groupby('data')['total'].sum().reset_index(),
         x='data',
         y='total',
         title="Total de Vendas ao Longo do Tempo"
     )
+    fig_tempo.update_layout(
+        plot_bgcolor='#1c1c1c',
+        paper_bgcolor='#1c1c1c',
+        font=dict(color='white'),
+        title_font_size=20
+    )
 
+    # Gráfico de vendas por região
     df_regiao = dff.groupby('região')['total'].sum().reset_index()
     df_regiao['total_formatado'] = df_regiao['total'].apply(lambda x: f'R$ {x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
 
@@ -147,10 +181,13 @@ def atualizar_dashboard(produtos, vendedores, data_inicio, data_fim):
     fig_regiao.update_traces(textposition='inside')
     fig_regiao.update_layout(
         yaxis_tickprefix='R$ ',
-        yaxis_tickformat=',.2f'
+        yaxis_tickformat=',.2f',
+        plot_bgcolor='#1c1c1c',
+        paper_bgcolor='#1c1c1c',
+        font=dict(color='white'),
+        title_font_size=20
     )
 
-    # Indicadores
     total = dff['total'].sum()
     media = dff['total'].mean()
     registros = len(dff)
