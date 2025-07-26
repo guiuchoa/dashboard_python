@@ -4,7 +4,7 @@ import plotly.express as px
 import pandas as pd
 
 # Carrega os dados
-caminho_csv = r'C:\Users\guie3\OneDrive\Documentos\Python Scripts\Dashboards Python\vendas.csv'
+caminho_csv = r'C:\Users\guie3\OneDrive\Documentos\Python Scripts\Dashboards Python\vendas_eletronicos.csv'
 df = pd.read_csv(caminho_csv, encoding='latin1')
 df['data'] = pd.to_datetime(df['data'], dayfirst=True)
 
@@ -13,7 +13,7 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 # Layout
 app.layout = dbc.Container([
-    html.H1("Dashboard de Vendas", className="text-center text-white mb-4"),
+    html.H1("Vendas Bit Shop", className="text-center text-white mb-4"),
 
     dbc.Row([
         dbc.Col(dbc.Card([
@@ -52,13 +52,13 @@ app.layout = dbc.Container([
         ], width=4),
 
         dbc.Col([
-            html.Label("Operadora:", className="text-white"),
+            html.Label("Vendedor:", className="text-white"),
             dcc.Dropdown(
-                id="filtro-operadora",
-                options=[{"label": op, "value": op} for op in sorted(df['operadora'].unique())],
+                id="filtro-vendedor",
+                options=[{"label": op, "value": op} for op in sorted(df['vendedor'].unique())],
                 multi=True,
                 value=[],
-                placeholder="Todas as operadoras",
+                placeholder="Todos os vendedores",
                 style={'color': 'black'}
             )
         ], width=4),
@@ -111,18 +111,18 @@ app.layout = dbc.Container([
     ],
     [
         Input("filtro-produto", "value"),
-        Input("filtro-operadora", "value"),
+        Input("filtro-vendedor", "value"),
         Input("filtro-data", "start_date"),
         Input("filtro-data", "end_date")
     ]
 )
-def atualizar_dashboard(produtos, operadoras, data_inicio, data_fim):
+def atualizar_dashboard(produtos, vendedores, data_inicio, data_fim):
     dff = df.copy()
 
     if produtos:
         dff = dff[dff['produto'].isin(produtos)]
-    if operadoras:
-        dff = dff[dff['operadora'].isin(operadoras)]
+    if vendedores:
+        dff = dff[dff['vendedor'].isin(vendedores)]
 
     dff = dff[(dff['data'] >= pd.to_datetime(data_inicio)) & (dff['data'] <= pd.to_datetime(data_fim))]
 
@@ -167,19 +167,19 @@ def atualizar_dashboard(produtos, operadoras, data_inicio, data_fim):
     Input("btn-exportar", "n_clicks"),
     [
         State("filtro-produto", "value"),
-        State("filtro-operadora", "value"),
+        State("filtro-vendedor", "value"),
         State("filtro-data", "start_date"),
         State("filtro-data", "end_date")
     ],
     prevent_initial_call=True
 )
-def exportar_excel(n_clicks, produtos, operadoras, data_inicio, data_fim):
+def exportar_excel(n_clicks, produtos, vendedores, data_inicio, data_fim):
     dff = df.copy()
 
     if produtos:
         dff = dff[dff['produto'].isin(produtos)]
-    if operadoras:
-        dff = dff[dff['operadora'].isin(operadoras)]
+    if vendedores:
+        dff = dff[dff['vendedor'].isin(vendedores)]
 
     dff = dff[(dff['data'] >= pd.to_datetime(data_inicio)) & (dff['data'] <= pd.to_datetime(data_fim))]
 
