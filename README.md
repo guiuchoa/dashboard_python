@@ -2,8 +2,6 @@
 
 Dashboard interativo construído com [Dash](https://dash.plotly.com/) e [Bootstrap Components](https://dash-bootstrap-components.opensource.faculty.ai/) para visualização e análise de vendas de uma loja de eletrônicos fictícia.
 
-![Preview do Dashboard](assets/preview.png)
-
 ---
 
 ## 📊 Funcionalidades
@@ -77,12 +75,6 @@ Dashboard interativo construído com [Dash](https://dash.plotly.com/) e [Bootstr
 │   └── preview.png
 └── README.md
 ```
-
----
-
-## 📷 Preview
-
-![Preview do Dashboard](assets/preview.png)
 
 ---
 
