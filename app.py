@@ -13,7 +13,7 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.DARKLY])
 
 # Layout
 app.layout = dbc.Container([
-    html.H1("Vendas Bit Shop", className="text-center text-white mb-4"),
+    html.H1("Bit Shop", className="text-center text-white mb-4"),
 
     dbc.Row([
         dbc.Col(dbc.Card([
