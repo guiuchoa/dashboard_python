@@ -15,9 +15,9 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.CYBORG])
 app.layout = dbc.Container([
     # Título com logo (opcional - logo deve estar na pasta assets)
     html.Div([
-        #html.Img(src='assets/logo.png', height='50px'),
-        html.H1("Bit Shop", className="text-white ms-3")
-    ], className="d-flex align-items-center mb-4"),
+        html.Img(src='assets/logo.png', height='100px', style={'height': '250px', 'marginRight': '20px'}),
+        #html.H1("Bit Shop", className="text-white ms-3")
+    ], className="d-flex justify-content-center align-items-center mb-4"),
 
     # Indicadores
     dbc.Row([
